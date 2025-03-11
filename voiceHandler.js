@@ -2,27 +2,29 @@ import { joinVoiceChannel, VoiceConnectionStatus, entersState } from '@discordjs
 import dotenv from 'dotenv';
 dotenv.config();
 
-let connection; // Variable to keep track of the voice connection
+let connection; // Keep track of the voice connection
 
 const reconnectVoiceChannel = async (client) => {
   try {
-    const guild = client.guilds.cache.get(process.env.GUILD_ID);
-    if (!guild) {
-      console.error('Guild not found');
+    // Fetch the guild instead of getting it from the cache
+    const guild = await client.guilds.fetch(process.env.GUILD_ID);
+    if (!guild) return console.error('Guild not found');
+
+    const voiceChannel = await guild.channels.fetch(process.env.VOICE_CHANNEL_ID);
+    if (!voiceChannel) return console.error('Voice channel not found');
+
+    if (!guild.voiceAdapterCreator) {
+      console.error('Voice adapter creator is undefined. Cannot join voice channel.');
       return;
     }
 
-    const voiceChannel = guild.channels.cache.get(process.env.VOICE_CHANNEL_ID);
-    if (!voiceChannel) {
-      console.error('Voice channel not found');
-      return;
-    }
-
-    if (connection) {
+    // Ensure proper cleanup before reconnecting
+    if (connection && connection.state.status !== VoiceConnectionStatus.Destroyed) {
       console.log('Disconnecting previous connection');
-      connection.destroy(); // Destroy the previous connection if it exists
+      connection.destroy();
     }
 
+    // Join the voice channel
     connection = joinVoiceChannel({
       channelId: voiceChannel.id,
       guildId: guild.id,
@@ -30,48 +32,31 @@ const reconnectVoiceChannel = async (client) => {
     });
 
     connection.on(VoiceConnectionStatus.Ready, () => {
-      console.log('Bot has connected to the voice channel!');
+      console.log('✅ Bot has connected to the voice channel!');
     });
 
-    connection.on(VoiceConnectionStatus.Disconnected, async (oldState, newState) => {
-      console.log('Disconnected from voice channel');
-
+    connection.on(VoiceConnectionStatus.Disconnected, async () => {
+      console.log('⚠️ Disconnected from voice channel. Attempting to reconnect...');
       try {
-        if (newState.reason === 'manual' || newState.reason === 'adapter_closed') {
-          console.log('Not reconnecting, reason:', newState.reason);
-          return;
-        }
-
-        console.log('Attempting to reconnect...');
-
-        // Wait for the connection to re-establish
         await entersState(connection, VoiceConnectionStatus.Connecting, 5000);
-        console.log('Reconnected successfully');
+        console.log('✅ Reconnected successfully');
       } catch (error) {
-        console.error('Failed to reconnect:', error);
-
-        // Attempt a full reconnect after a delay
-        setTimeout(async () => {
-          await reconnectVoiceChannel(client);
-        }, 5000); // Delay to avoid spamming reconnection attempts
+        console.error('❌ Failed to reconnect, retrying in 5 seconds:', error);
+        setTimeout(() => reconnectVoiceChannel(client), 5000);
       }
     });
 
-    connection.on(VoiceConnectionStatus.Signalling, () => {
-      console.log('Signalling state, attempting to maintain connection...');
-    });
-
     connection.on(VoiceConnectionStatus.Reconnecting, () => {
-      console.log('Reconnecting to the voice channel...');
+      console.log('🔄 Reconnecting to the voice channel...');
     });
 
     connection.on(VoiceConnectionStatus.Idle, () => {
-      console.log('Connection is idle, attempting to reconnect...');
+      console.log('🕛 Connection is idle, attempting to reconnect...');
       reconnectVoiceChannel(client);
     });
 
   } catch (error) {
-    console.error('Error reconnecting to voice channel:', error);
+    console.error('❌ Error reconnecting to voice channel:', error);
   }
 };
 
