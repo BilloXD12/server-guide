@@ -8,6 +8,7 @@ export const createWelcomeEmbed = (member) => {
     .addFields(
       { name: '<a:speaker1:1222699233245925386> Server Announcement', value: '*Make sure to check out <#1260682416398270465> for server announcement.*' },
       { name: '💬 General Chat', value: '*Feel free to join the general chat <#1260682277256691793> and introduce yourself!*' },
+      { name: '<:cryingcat:1279519928696832000> Special Role', value: '*We have special roles which you can apply for according to your requirement <#1319632659303104624>*' },
       { name: '<a:utility:1241028673797099520> **Server Guide**', value: '*__Below are some buttons click on your desired button to get to know more about server__*' }
     )
     .setThumbnail(member.user.displayAvatarURL())
