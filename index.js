@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits, Partials } from 'discord.js';
+import { Client, GatewayIntentBits, Partials, EmbedBuilder  } from 'discord.js';
 import { reconnectVoiceChannel } from './voiceHandler.js';
 import { WebhookClient } from 'discord.js';
 import express from 'express';
@@ -27,7 +27,7 @@ const client = new Client({
 });
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 4000;
 
 app.get('/', (req, res) => {
   res.send('Bot is running');
